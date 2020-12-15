@@ -1,7 +1,7 @@
 package com.dt.kika.service.impl;
 
 import com.dt.kika.common.constant.RocksDbConstant;
-import com.dt.kika.service.IKiKaService;
+import com.dt.kika.service.IKiStringService;
 import lombok.extern.slf4j.Slf4j;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
@@ -17,7 +17,7 @@ import java.nio.file.Files;
 
 @Slf4j
 @Repository
-public class KiKaServiceImpl implements IKiKaService<String, String> {
+public class KiStringServiceImpl implements IKiStringService<String, String> {
 
     /**
      * rocksdb数据存储目录;
@@ -26,7 +26,6 @@ public class KiKaServiceImpl implements IKiKaService<String, String> {
     public String ROCKSDB_DATA_DIRECTORY;
 
     RocksDB stringDb;
-    RocksDB hashDb;
 
     @PostConstruct
     void initialize() {
@@ -48,21 +47,11 @@ public class KiKaServiceImpl implements IKiKaService<String, String> {
                     ex.getCause(), ex.getMessage(), ex.getStackTrace());
         }
 
-        try {
-            File dbDir = new File(ROCKSDB_DATA_DIRECTORY, RocksDbConstant.HASH_DB);
-            Files.createDirectories(dbDir.getParentFile().toPath());
-            Files.createDirectories(dbDir.getAbsoluteFile().toPath());
-            hashDb = RocksDB.open(options, dbDir.getAbsolutePath());
-        } catch (IOException | RocksDBException ex) {
-            log.error("Error initializng RocksDB, check configurations and permissions, exception: {}, message: {}, stackTrace: {}",
-                    ex.getCause(), ex.getMessage(), ex.getStackTrace());
-        }
-
         log.info("RocksDB initialized and ready to use");
     }
 
     @Override
-    public synchronized void save(String key, String value) {
+    public synchronized void set(String key, String value) {
         log.info("save");
         try {
             stringDb.put(key.getBytes(), value.getBytes());
@@ -72,12 +61,11 @@ public class KiKaServiceImpl implements IKiKaService<String, String> {
     }
 
     @Override
-    public synchronized String find(String key) {
+    public synchronized String get(String key) {
         log.info("find");
         String result = null;
         try {
             byte[] bytes = stringDb.get(key.getBytes());
-
             if (bytes == null) return null;
             result = new String(bytes);
         } catch (RocksDBException e) {
@@ -87,7 +75,7 @@ public class KiKaServiceImpl implements IKiKaService<String, String> {
     }
 
     @Override
-    public synchronized void delete(String key) {
+    public synchronized void del(String key) {
         log.info("delete");
         try {
             stringDb.delete(key.getBytes());
