@@ -1,11 +1,14 @@
 package com.dt.kika.service.impl;
 
+import com.dt.kika.common.constant.RocksDbConstant;
 import com.dt.kika.service.IKiKaService;
 import lombok.extern.slf4j.Slf4j;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
@@ -16,24 +19,45 @@ import java.nio.file.Files;
 @Repository
 public class KiKaServiceImpl implements IKiKaService<String, String> {
 
-    private final static String NAME = "first-db";
-    File dbDir;
-    RocksDB db;
+    /**
+     * rocksdb数据存储目录;
+     **/
+    @Value("${kika.rocksdb.data.directory}")
+    public String ROCKSDB_DATA_DIRECTORY;
+
+    RocksDB stringDb;
+    RocksDB hashDb;
 
     @PostConstruct
     void initialize() {
         RocksDB.loadLibrary();
         final Options options = new Options();
         options.setCreateIfMissing(true);
-        dbDir = new File("/tmp/rocks-db", NAME);
+        if (StringUtils.isEmpty(ROCKSDB_DATA_DIRECTORY)) {
+            log.error("rocksDb directory is empty");
+            return;
+        }
+
         try {
+            File dbDir = new File(ROCKSDB_DATA_DIRECTORY, RocksDbConstant.STRING_DB);
             Files.createDirectories(dbDir.getParentFile().toPath());
             Files.createDirectories(dbDir.getAbsoluteFile().toPath());
-            db = RocksDB.open(options, dbDir.getAbsolutePath());
+            stringDb = RocksDB.open(options, dbDir.getAbsolutePath());
         } catch (IOException | RocksDBException ex) {
             log.error("Error initializng RocksDB, check configurations and permissions, exception: {}, message: {}, stackTrace: {}",
                     ex.getCause(), ex.getMessage(), ex.getStackTrace());
         }
+
+        try {
+            File dbDir = new File(ROCKSDB_DATA_DIRECTORY, RocksDbConstant.HASH_DB);
+            Files.createDirectories(dbDir.getParentFile().toPath());
+            Files.createDirectories(dbDir.getAbsoluteFile().toPath());
+            hashDb = RocksDB.open(options, dbDir.getAbsolutePath());
+        } catch (IOException | RocksDBException ex) {
+            log.error("Error initializng RocksDB, check configurations and permissions, exception: {}, message: {}, stackTrace: {}",
+                    ex.getCause(), ex.getMessage(), ex.getStackTrace());
+        }
+
         log.info("RocksDB initialized and ready to use");
     }
 
@@ -41,7 +65,7 @@ public class KiKaServiceImpl implements IKiKaService<String, String> {
     public synchronized void save(String key, String value) {
         log.info("save");
         try {
-            db.put(key.getBytes(), value.getBytes());
+            stringDb.put(key.getBytes(), value.getBytes());
         } catch (RocksDBException e) {
             log.error("Error saving entry in RocksDB, cause: {}, message: {}", e.getCause(), e.getMessage());
         }
@@ -52,7 +76,7 @@ public class KiKaServiceImpl implements IKiKaService<String, String> {
         log.info("find");
         String result = null;
         try {
-            byte[] bytes = db.get(key.getBytes());
+            byte[] bytes = stringDb.get(key.getBytes());
 
             if (bytes == null) return null;
             result = new String(bytes);
@@ -66,7 +90,7 @@ public class KiKaServiceImpl implements IKiKaService<String, String> {
     public synchronized void delete(String key) {
         log.info("delete");
         try {
-            db.delete(key.getBytes());
+            stringDb.delete(key.getBytes());
         } catch (RocksDBException e) {
             log.error("Error deleting entry in RocksDB, cause: {}, message: {}", e.getCause(), e.getMessage());
         }
