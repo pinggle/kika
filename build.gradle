@@ -1,0 +1,97 @@
+group 'com.dt.kika'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+
+buildscript {
+    ext {
+        springBootVersion = '2.1.3.RELEASE'
+    }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+    }
+}
+
+repositories {
+    mavenLocal()
+    jcenter()
+    mavenCentral()
+    maven {
+        url "http://maven.aliyun.com/nexus/content/groups/public"
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'application'
+
+mainClassName = 'com.dt.kika.KiKaBootAppApplication'
+applicationName = "kika"
+applicationDefaultJvmArgs = [
+        "-server",
+        "-Xmx1g",
+        "-Xms1g",
+        "-XX:InitiatingHeapOccupancyPercent=35",
+        "-XX:ParallelGCThreads=25",
+        "-XX:ConcGCThreads=5",
+        "-XX:G1ReservePercent=20",
+        "-XX:+UseG1GC",
+        "-XX:MaxDirectMemorySize=1g",
+        "-XX:+HeapDumpOnOutOfMemoryError",
+        "-XX:MaxGCPauseMillis=200",
+        "-XX:GCTimeRatio=9"
+]
+applicationDistribution.from("run.sh") {
+    into ""
+}
+applicationDistribution.from("conf") {
+    into "conf"
+}
+//这里是制作启动脚本的io线程
+tasks.startScripts {
+    classpath += files("conf")
+    doLast {
+        //针对不同的平台进行不同的包文件格式
+        def windowsScriptFile = file getWindowsScript()
+        def unixScriptFile = file getUnixScript()
+        windowsScriptFile.text = windowsScriptFile.text.replace('$APP_HOME/lib/conf', '$APP_HOME/conf')
+        unixScriptFile.text = unixScriptFile.text.replace('$APP_HOME/lib/conf', '$APP_HOME/conf')
+    }
+}
+jar {
+    enabled true
+    exclude('**/*.xml', '**/*.properties', '**/*.json', '**/*.txt', '**/*.datx', '**/*.prop', '**/*.csv', '**/*.conf')
+}
+def profileName = System.getProperty("profile") ?: "dev"
+distributions {
+    main {
+        contents {
+            into('conf') { //指定需要将配置文件放入的目录
+                from("src/main/resources") { //指定当前配置文件所有在目录
+                    include '/**/*' //动态指定需要打包的配置文件   Ant表达式
+                    filter org.apache.tools.ant.filters.ReplaceTokens, tokens: [profileName: profileName]
+                }
+            }
+        }
+    }
+}
+
+dependencies {
+    compile 'org.springframework.boot:spring-boot-starter'
+    compile 'org.springframework.boot:spring-boot-starter-web'
+    compile 'org.springframework.boot:spring-boot-starter-actuator'
+    compile 'org.rocksdb:rocksdbjni:6.13.3'
+
+    compileOnly 'org.projectlombok:lombok:1.18.8'
+    annotationProcessor 'org.projectlombok:lombok:1.18.8'
+    testCompileOnly 'org.projectlombok:lombok:1.18.8'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.8'
+
+    testCompile 'org.springframework.boot:spring-boot-starter-test'
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}

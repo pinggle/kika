@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS}`%level`%thread`%c`%m%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="info"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <append>true</append>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS}`%c`%m%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>INFO</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${logger_path:-${user.dir}}/logs/kika_info.%d{yyyyMMdd}.log
+            </fileNamePattern>
+            <maxHistory>2</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="debug"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <append>true</append>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS}`%thread`%c`%m%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>DEBUG</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${logger_path:-${user.dir}}/logs/kika_debug.%d{yyyyMMdd}.log
+            </fileNamePattern>
+            <maxHistory>2</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="error"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <append>true</append>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS}`%thread`%c`%m%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${logger_path:-${user.dir}}/logs/kika_error.%d{yyyyMMdd}.log
+            </fileNamePattern>
+            <maxHistory>2</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="asyn_stdout" class="ch.qos.logback.classic.AsyncAppender"
+              discardingThreshold="0">
+        <appender-ref ref="stdout"/>
+    </appender>
+
+    <appender name="asyn_err" class="ch.qos.logback.classic.AsyncAppender"
+              discardingThreshold="0">
+        <appender-ref ref="error"/>
+    </appender>
+    <appender name="asyn_debug" class="ch.qos.logback.classic.AsyncAppender"
+              discardingThreshold="0">
+        <appender-ref ref="debug"/>
+    </appender>
+    <appender name="asyn_info" class="ch.qos.logback.classic.AsyncAppender"
+              discardingThreshold="0">
+        <appender-ref ref="info"/>
+    </appender>
+
+    <root level="info">
+        <!--    <root level="trace">-->
+        <!-- <appender-ref ref="debug"/> <appender-ref ref="info"/> <appender-ref
+            ref="error"/> <appender-ref ref="stdout"/> -->
+        <appender-ref ref="asyn_err"/>
+        <appender-ref ref="asyn_info"/>
+        <appender-ref ref="asyn_debug"/>
+        <appender-ref ref="asyn_stdout"/>
+    </root>
+
+</configuration>
